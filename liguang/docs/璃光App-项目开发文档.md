@@ -294,7 +294,7 @@ curl -s -X POST -H "X-Auth-Token: <璃光Token>" -H "Content-Type: application/j
 ## D. 关键路径速查
 
 - 项目文档：`<服务器数据目录>/docs/璃光App-项目开发文档.md`（本文件）
-- 运维手册：`/AstrBot/data/skills/mengli-liguang/SKILL.md`（已补 0.1.15~0.1.25 版本记录 + 缓存剥头装成旧包排障 + 保活机制 + 断连排障 + 双连接修复 + 日志时间戳）
+- 运维手册：`<服务器数据目录>/skills/mengli-liguang/SKILL.md`（已补 0.1.15~0.1.25 版本记录 + 缓存剥头装成旧包排障 + 保活机制 + 断连排障 + 双连接修复 + 日志时间戳）
 - App 源码：`<服务器数据目录>/scripts/liguang-app/`
 - 服务端：`<服务器数据目录>/scripts/liguang-server/`
 - 签名：`<服务器数据目录>/keys/liguang.keystore`（不能丢）
@@ -347,7 +347,7 @@ curl -s -X POST -H "X-Auth-Token: <璃光Token>" -H "Content-Type: application/j
 
 ### 五、关键实现位置
 
-- 关怀插件：`/AstrBot/data/plugins/astrbot_plugin_mengli_care/`
+- 关怀插件：`<服务器数据目录>/plugins/astrbot_plugin_mengli_care/`
   - main.py：全套工具注册、注入、主动调度（双模式）、动机模板汇报
   - core/liguang.py：璃光指令客户端（全部指令封装）
   - _conf_schema.json：配置面板（全可自定义）

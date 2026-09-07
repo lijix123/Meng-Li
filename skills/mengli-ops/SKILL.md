@@ -149,7 +149,7 @@ ssh -i C:\Users\yao\.ssh\pc_key -o ServerAliveInterval=30 -N -R 8188:127.0.0.1:8
 
 - 所有自建 skill（mengli-liguang / mengli-ops / mengli-render / mengli-schedule）统一备份到服务器 `<服务器数据目录>/docs/备份/skills/<技能名>/`。
 - 归档内容：每个技能 `SKILL.md`，mengli-render 额外归档 `render.py`；历史版本命名 `<文件名>_<YYYYMMDD>`，不散落在 scripts 里。
-- 生效规则：mengli-render 存在两份副本（本地 `/AstrBot/data/skills/mengli-render` 与工作区 `/AstrBot/data/workspaces/_FriendMessage_<姐姐UID>/skills/mengli-render`），同名时工作区覆盖本地，两份必须保持完全一致。
+- 生效规则：mengli-render 存在两份副本（本地 `<服务器数据目录>/skills/mengli-render` 与工作区 `<服务器数据目录>/workspaces/_FriendMessage_<姐姐UID>/skills/mengli-render`），同名时工作区覆盖本地，两份必须保持完全一致。
 - 维护手册（含全部维护注意点、技能清单、关键路径）：`<服务器数据目录>/docs/备份/skills/维护手册.md`，改任何 skill 前先读它。
 
 ## 记忆文件位置

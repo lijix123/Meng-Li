@@ -70,7 +70,7 @@ description: 璃光（liguang）远程控制系统运维手册。璃光是梦璃
 | APK 产物 | `<服务器数据目录>/scripts/liguang-app/releases/` |
 | 签名密钥 | `<服务器数据目录>/keys/liguang.keystore` |
 
-宿主机对应路径：`/opt/astrbot/data/...`（容器内 `/AstrBot/data/...` 是它的挂载）。
+宿主机对应路径：`<服务器数据目录>/data/...`（容器内 `<服务器数据目录>/...` 是它的挂载）。
 
 ## 四、日常运维
 

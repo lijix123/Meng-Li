@@ -4,4 +4,4 @@ desc: 在新对话或重置对话时，自动读取梦璃记忆文件并注入�
 help: 无需手动指令。新对话/重置对话的首轮请求会自动触发记忆注入。WebUI中分【私聊白名单】【私聊文件】【群聊白名单与文件】三块配置，群聊按群号逐条配置各自读取的文件，实现群间记忆隔离。
 version: v2.7.0
 author: 梦璃
-repo: https://github.com/
+repo: https://github.com/lijix123/Meng-Li

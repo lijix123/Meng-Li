@@ -1,8 +1,0 @@
-{
-  "version": "0.1.40",
-  "name": "0.1.40",
-  "url": "http://<服务器IP>:8911/apk/<版本号>",
-  "notes": "新增屏幕亮灭与前台应用遥测上报（状态感知基础）。屏幕开关变化即时上报，无障碍服务自动记录当前前台应用，服务端 /devices 新增 screen_on/last_screen_time/foreground_app/foreground_at 字段。",
-  "force": false,
-  "sha256": "c434d0d79a2617d748fa158a7995eb552bfdb8b26bec0c151c7040da97136c04"
-}

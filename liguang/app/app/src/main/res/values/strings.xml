@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">璃光</string>
-    <string name="accessibility_desc">璃光无障碍服务，为梦璃以后远程手势控制铺路。当前不读取任何内容。</string>
-    <string name="notify_listener_desc">璃光通知读取：读取系统通知并汇总展示，方便梦璃帮你留意消息。通知内容仅保存在本机设置页，可随时清除。</string>
-</resources>

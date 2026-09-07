@@ -1,0 +1,18 @@
+services:
+  liguang:
+    image: python:3.12-slim
+    container_name: liguang
+    restart: always
+    ports:
+      - "8910:8910"
+      - "8911:8911"
+    environment:
+      - TZ=Asia/Shanghai
+      - LIGUANG_APK_DIR=/app/releases
+    volumes:
+      - <服务器数据目录>/scripts/liguang-server:/app
+      - <服务器数据目录>/scripts/liguang-app/releases:/app/releases
+    working_dir: /app
+    command: >
+      sh -c "pip install --no-cache-dir websockets -i https://mirrors.aliyun.com/pypi/simple/ -q &&
+             exec python server.py"

@@ -1,0 +1,15 @@
+# 构建产物
+**/build/
+**/.gradle/
+**/__pycache__/
+*.pyc
+# 本地配置
+local.properties
+# 敏感凭据
+*.keystore
+*.jks
+*.pem
+*.key
+keys/
+# 备份文件
+*.bak*

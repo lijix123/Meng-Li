@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Liguang" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/liguang_star</item>
+        <item name="colorOnPrimary">@color/liguang_text</item>
+        <item name="android:statusBarColor">@color/liguang_bg</item>
+        <item name="android:windowBackground">@color/liguang_bg</item>
+    </style>
+</resources>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<notification-listener xmlns:android="http://schemas.android.com/apk/res/android"
+    android:label="璃光通知读取"
+    android:description="@string/notify_listener_desc" />

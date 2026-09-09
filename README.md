@@ -43,8 +43,7 @@
 
 ## 📜 许可证
 
-- 本仓库（梦璃原创代码部分）：**AGPL-3.0**，见 [LICENSE](./LICENSE)。
-- 插件 `jm下载姬` 改编自 [hect0x7/JMComic-Crawler-Python](https://github.com/hect0x7/JMComic-Crawler-Python)（MIT 协议），上游许可证见插件内 `vendor/LICENSE_upstream_MIT.txt`，改编符合 MIT 条款并保留原版权声明。
+本仓库采用 **AGPL-3.0** 许可证，见 [LICENSE](./LICENSE)。
 
 ---
 

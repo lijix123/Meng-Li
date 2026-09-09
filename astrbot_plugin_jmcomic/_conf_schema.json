@@ -1,0 +1,54 @@
+{
+    "access_mode": {
+        "description": "开放模式",
+        "hint": "admin=仅管理员可用，all=所有人可用，whitelist=仅白名单可用",
+        "type": "string",
+        "default": "admin"
+    },
+    "admin_ids": {
+        "description": "管理员QQ号",
+        "hint": "开放模式为admin时生效，填写允许使用插件的QQ号，不填则无人可用",
+        "type": "list",
+        "default": []
+    },
+    "whitelist": {
+        "description": "白名单QQ号",
+        "hint": "开放模式为whitelist时生效，填写允许使用的QQ号",
+        "type": "list",
+        "default": []
+    },
+    "max_concurrent": {
+        "description": "全局并发任务数",
+        "hint": "同时最多进行几个下载任务，超出排队的自动等待",
+        "type": "int",
+        "default": 3,
+        "slider": {
+            "min": 1,
+            "max": 10,
+            "step": 1
+        }
+    },
+    "per_user_limit": {
+        "description": "每用户同时任务数",
+        "hint": "同一个用户同时最多进行几个下载任务",
+        "type": "int",
+        "default": 1,
+        "slider": {
+            "min": 1,
+            "max": 5,
+            "step": 1
+        }
+    },
+    "default_format": {
+        "description": "默认交付格式",
+        "hint": "longimg=长图(QQ直接看)，zip=压缩包，pdf=PDF文档",
+        "type": "string",
+        "default": "longimg"
+    },
+    "tmp_dir": {
+        "description": "下载中转目录",
+        "hint": "下载和转换都在这完成，交付给用户后自动删除，不用手动清理",
+        "type": "string",
+        "default": "/AstrBot/data/MengliRoom/漫画/tmp"
+    }
+}

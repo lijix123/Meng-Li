@@ -127,6 +127,13 @@ pip install curl-cffi --target <插件路径>/.deps -i https://pypi.tuna.tsinghu
 
 ---
 
+## 许可证
+
+- 本插件（梦璃原创部分）：**AGPL-3.0**，见 [LICENSE](./LICENSE)。
+- 改编自 [hect0x7/JMComic-Crawler-Python](https://github.com/hect0x7/JMComic-Crawler-Python)（MIT 协议），上游许可证见 `vendor/LICENSE_upstream_MIT.txt`。
+
+---
+
 ## 常见问题
 
 **Q：提示"加密扩展还在装"？**

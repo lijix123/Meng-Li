@@ -45,6 +45,12 @@
         "type": "string",
         "default": "longimg"
     },
+    "cookies": {
+        "description": "禁漫登录cookies",
+        "hint": "浏览器登录禁漫后，复制cookies粘贴到这里（形如 a=1; b=2）。不填为游客模式，登录可见的本子会下载失败",
+        "type": "string",
+        "default": ""
+    },
     "tmp_dir": {
         "description": "下载中转目录",
         "hint": "下载和转换都在这完成，交付给用户后自动删除，不用手动清理",

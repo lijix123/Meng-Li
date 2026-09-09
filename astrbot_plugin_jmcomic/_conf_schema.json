@@ -45,6 +45,12 @@
         "type": "string",
         "default": "longimg"
     },
+    "auto_update": {
+        "description": "自动跟随上游更新",
+        "hint": "插件启动及运行中每小时自动检查jmcomic上游版本，发现新版自动更新，失败自动回退旧版。on=开启 off=关闭",
+        "type": "string",
+        "default": "on"
+    },
     "tmp_dir": {
         "description": "下载中转目录",
         "hint": "下载和转换都在这完成，交付给用户后自动删除，不用手动清理",

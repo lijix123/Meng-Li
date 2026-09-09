@@ -12,6 +12,7 @@
 
 import asyncio
 import importlib
+import json
 import os
 import re
 import shutil
@@ -69,6 +70,8 @@ except Exception as _jm_import_err:
     logger.warning(f"[jm下载姬] jmcomic 导入失败，插件暂不可用: {_jm_import_err}")
 
 _IMG_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"}
+_PYPI_JSON_URL = "https://pypi.org/pypi/jmcomic/json"
+_UPDATE_CHECK_INTERVAL = 3600  # 运行中每小时检查一次上游版本
 _FMT_ALIAS = {
     "longimg": "longimg", "长图": "longimg", "图": "longimg",
     "zip": "zip", "压缩包": "zip", "包": "zip",
@@ -93,6 +96,10 @@ class JmComicPlugin(Star):
         self._tasks: dict[int, dict] = {}
         self._bg_tasks: set = set()
         self._next_tid = 1
+        self._update_lock = threading.Lock()
+        self._update_notice: str | None = None
+        self._update_timer_task = None
+        self._start_auto_update()
         self._tid_lock = threading.Lock()
         self._startup_check_dep()
 
@@ -104,6 +111,23 @@ class JmComicPlugin(Star):
             return
         logger.info("[jm下载姬] 未检测到私有 curl-cffi，后台自动安装中")
         threading.Thread(target=self._pip_install_curl, daemon=True).start()
+
+    def _start_auto_update(self) -> None:
+        """启动自动更新：立即后台查一次，并挂上每小时定时检查。"""
+        try:
+            if not str(self._cfg("auto_update", "on")).strip().lower() in ("on", "true", "1", "开"):
+                logger.info("[jm下载姬] 自动更新已关闭")
+                return
+        except Exception:
+            pass
+        threading.Thread(target=self._auto_update_check, daemon=True).start()
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        self._update_timer_task = loop.create_task(self._update_timer_loop())
+        self._bg_tasks.add(self._update_timer_task)
+        self._update_timer_task.add_done_callback(self._bg_tasks.discard)
 
     @staticmethod
     def _pip_install_curl() -> None:
@@ -126,6 +150,147 @@ class JmComicPlugin(Star):
     @staticmethod
     def _curl_ok() -> bool:
         return JM_READY
+
+    # ---------------- 上游自动更新 ----------------
+
+    @staticmethod
+    def _get_latest_pypi_version(timeout: int = 10):
+        """查询 PyPI 上 jmcomic 最新版本，失败返回 None。"""
+        import urllib.request
+        try:
+            req = urllib.request.Request(_PYPI_JSON_URL, headers={"User-Agent": "jm-downloader/1.0"})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            return data.get("info", {}).get("version")
+        except Exception as e:
+            logger.debug(f"[jm下载姬] 上游版本检查失败: {e}")
+            return None
+
+    @staticmethod
+    def _vendor_version() -> str | None:
+        """读取内嵌 jmcomic 的版本号。"""
+        try:
+            import jmcomic
+            return getattr(jmcomic, "__version__", None)
+        except Exception:
+            return None
+
+    def _auto_update_check(self) -> None:
+        """后台线程：检查上游版本，有新版则尝试更新。"""
+        try:
+            latest = self._get_latest_pypi_version()
+            if not latest:
+                return
+            current = self._vendor_version()
+            if not current:
+                self._update_notice = "内嵌库版本异常，建议重装插件。"
+                return
+            if self._is_newer(latest, current):
+                ok, msg = self._apply_update(latest)
+                if ok:
+                    self._update_notice = f"上游更新已生效：{current} → {latest}"
+                    logger.info(f"[jm下载姬] 自动更新成功: {current} → {latest}")
+                else:
+                    self._update_notice = f"发现上游新版 {latest}，但更新失败，继续用旧版 {current}。"
+                    logger.warning(f"[jm下载姬] 自动更新失败: {msg}")
+        except Exception as e:
+            logger.debug(f"[jm下载姬] 自动更新检查异常: {e}")
+
+    @staticmethod
+    def _is_newer(latest: str, current: str) -> bool:
+        def to_tuple(v: str):
+            nums = []
+            for part in v.replace("v", "").split("."):
+                m = re.search(r"\d+", part)
+                nums.append(int(m.group()) if m else 0)
+            return tuple(nums)
+        try:
+            return to_tuple(latest) > to_tuple(current)
+        except Exception:
+            return latest != current
+
+    def _apply_update(self, latest: str) -> tuple[bool, str]:
+        """下载新版到临时目录，校验通过后覆盖 vendor。失败不动 vendor，旧版继续可用。"""
+        if not self._update_lock.acquire(blocking=False):
+            return False, "已有更新任务在进行"
+        tmp_dir = _PLUGIN_DIR / ".update_tmp"
+        try:
+            if tmp_dir.exists():
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            tmp_dir.mkdir(parents=True, exist_ok=True)
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "install", "jmcomic", "-q",
+                 "--target", str(tmp_dir), "--no-deps",
+                 "-i", "https://pypi.tuna.tsinghua.edu.cn/simple/"],
+                timeout=300,
+                check=False,
+            )
+            if result.returncode != 0:
+                return False, f"pip下载失败(码{result.returncode})"
+            importlib.invalidate_caches()
+            if not (tmp_dir / "jmcomic").is_dir():
+                return False, "下载目录缺少jmcomic包"
+            # 校验：临时版本号一致
+            tmp_ver = self._probe_version(tmp_dir)
+            if tmp_ver != latest:
+                return False, f"版本校验不符(期望{latest},实际{tmp_ver or '未知'})"
+            # 校验：能真正 import 且关键函数可用
+            if not self._probe_usable(tmp_dir):
+                return False, "新版导入自检失败"
+            # 覆盖 vendor（旧版被替换，只留新版）
+            shutil.rmtree(str(_VENDOR / "jmcomic"), ignore_errors=True)
+            shutil.move(str(tmp_dir / "jmcomic"), str(_VENDOR / "jmcomic"))
+            # 若新版带 common，也同步替换
+            if (tmp_dir / "common").is_dir():
+                shutil.rmtree(str(_VENDOR / "common"), ignore_errors=True)
+                shutil.move(str(tmp_dir / "common"), str(_VENDOR / "common"))
+            importlib.invalidate_caches()
+            return True, f"更新至 {latest}"
+        except Exception as e:
+            return False, str(e)
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            self._update_lock.release()
+
+    @staticmethod
+    def _probe_version(tmp_dir) -> str | None:
+        """子进程读临时目录 jmcomic 版本号（隔离环境，vendor 提供 common 兜底）。"""
+        script = (
+            "import sys; sys.path.insert(0, %r); sys.path.insert(0, %r); sys.path.insert(0, %r); "
+            "import jmcomic; print(jmcomic.__version__)"
+            % (str(tmp_dir), str(_VENDOR), str(_DEPS_DIR))
+        )
+        try:
+            r = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=60)
+            out = r.stdout.strip()
+            return out.splitlines()[-1] if out else None
+        except Exception:
+            return None
+
+    @staticmethod
+    def _probe_usable(tmp_dir) -> bool:
+        """子进程验证新版 jmcomic 能导入关键组件。"""
+        script = (
+            "import sys; sys.path.insert(0, %r); sys.path.insert(0, %r); sys.path.insert(0, %r); "
+            "import jmcomic; from jmcomic import JmOption; print('OK')"
+            % (str(tmp_dir), str(_VENDOR), str(_DEPS_DIR))
+        )
+        try:
+            r = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=60)
+            return r.returncode == 0 and "OK" in r.stdout
+        except Exception:
+            return False
+
+    async def _update_timer_loop(self) -> None:
+        """运行中定时检查上游更新。"""
+        while True:
+            try:
+                await asyncio.sleep(_UPDATE_CHECK_INTERVAL)
+                await asyncio.to_thread(self._auto_update_check)
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                pass
 
     # ---------------- 配置读取（面板改动全部生效） ----------------
 
@@ -217,6 +382,10 @@ class JmComicPlugin(Star):
         if not self._check_access(event):
             yield event.plain_result(self._deny_text())
             return
+        if self._update_notice:
+            notice = self._update_notice
+            self._update_notice = None
+            yield event.plain_result("🔔 " + notice)
         arg = self._strip_cmd(event.get_message_str(), "搜本")
         parts = arg.split()
         if not parts:
@@ -260,6 +429,10 @@ class JmComicPlugin(Star):
         if not self._check_access(event):
             yield event.plain_result(self._deny_text())
             return
+        if self._update_notice:
+            notice = self._update_notice
+            self._update_notice = None
+            yield event.plain_result("🔔 " + notice)
         arg = self._strip_cmd(event.get_message_str(), "排行")
         kind = "周"
         if arg:
@@ -298,6 +471,10 @@ class JmComicPlugin(Star):
         if not self._check_access(event):
             yield event.plain_result(self._deny_text())
             return
+        if self._update_notice:
+            notice = self._update_notice
+            self._update_notice = None
+            yield event.plain_result("🔔 " + notice)
         arg = self._strip_cmd(event.get_message_str(), "下本")
         parts = arg.split()
         if not parts or not parts[0].isdigit():
@@ -341,6 +518,10 @@ class JmComicPlugin(Star):
         if not self._check_access(event):
             yield event.plain_result(self._deny_text())
             return
+        if self._update_notice:
+            notice = self._update_notice
+            self._update_notice = None
+            yield event.plain_result("🔔 " + notice)
         uid = str(event.get_sender_id())
         mine = [t for t in self._tasks.values() if t["user_id"] == uid]
         if not mine:
@@ -354,6 +535,10 @@ class JmComicPlugin(Star):
         if not self._check_access(event):
             yield event.plain_result(self._deny_text())
             return
+        if self._update_notice:
+            notice = self._update_notice
+            self._update_notice = None
+            yield event.plain_result("🔔 " + notice)
         arg = self._strip_cmd(event.get_message_str(), "取消")
         if not arg.isdigit():
             yield event.plain_result("用法：取消 <任务号>")
@@ -587,6 +772,11 @@ download:
 
     async def terminate(self) -> None:
         logger.info("[jm下载姬] 插件卸载，清理依赖")
+        try:
+            if self._update_timer_task:
+                self._update_timer_task.cancel()
+        except Exception:
+            pass
         try:
             await asyncio.to_thread(self._uninstall_dep)
         except Exception as e:

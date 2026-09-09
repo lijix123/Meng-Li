@@ -435,10 +435,6 @@ class JmComicPlugin(Star):
     def _download_album(self, t: dict) -> bool:
         album_id = t["album_id"]
         try:
-            cookies = str(self._cfg("cookies", "") or "").strip()
-            cookies_block = f"""
-client:
-  cookies: '{cookies}'""" if cookies else ""
             option = jmcomic.create_option_by_str(f"""
 dir_rule:
   base_dir: {t['dir']}
@@ -446,7 +442,7 @@ dir_rule:
 download:
   image:
     suffix: .jpg
-{cookies_block}""")
+""")
             try:
                 client = option.new_jm_client()
                 detail = client.get_album_detail(album_id)

@@ -29,6 +29,50 @@
 
 ---
 
+## 安装与拉取
+
+### 从 GitHub 拉取插件
+
+方式一：克隆整个仓库（最简单，推荐）：
+
+```bash
+git clone git@github.com:lijix123/Meng-Li.git
+# 插件在 Meng-Li/astrbot_plugin_jmcomic/
+```
+
+方式二：只拉取插件目录（稀疏检出，省流量）：
+
+```bash
+git clone --depth 1 --filter=blob:none --sparse git@github.com:lijix123/Meng-Li.git
+cd Meng-Li
+git sparse-checkout set astrbot_plugin_jmcomic
+```
+
+方式三：直接下载仓库 ZIP：
+GitHub 仓库首页 → 绿色 `Code` 按钮 → `Download ZIP`，解压后取 `astrbot_plugin_jmcomic` 文件夹。
+
+### 安装到 AstrBot
+
+将 `astrbot_plugin_jmcomic` 整个文件夹放入 AstrBot 的插件目录（通常是 `<AstrBot>/data/plugins/`），然后在 AstrBot 管理后台启用插件即可。
+
+### 依赖说明与手动安装
+
+插件依赖分两部分：
+
+1. **jmcomic 库**：已内嵌在插件 `vendor/` 目录中，无需手动安装，随插件自带。
+2. **curl-cffi（加密通信组件）**：首次加载插件时会自动安装到插件私有目录 `.deps/`，一般无需干预。
+
+若自动安装失败（网络问题等），可手动安装：
+
+```bash
+# 进入插件目录后执行（请把 <插件路径> 换成实际路径）
+pip install curl-cffi --target <插件路径>/.deps -i https://pypi.tuna.tsinghua.edu.cn/simple/
+```
+
+装完重启 AstrBot 或重载插件即可。依赖全部装在插件私有目录内，不污染系统 Python 环境，卸载插件时自动清理。
+
+---
+
 ## 快速开始
 
 装好插件后，在 QQ 里直接发消息即可（默认仅管理员可用，可在面板调整）。

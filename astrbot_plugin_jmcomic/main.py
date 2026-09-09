@@ -11,6 +11,7 @@
 """
 
 import asyncio
+import importlib
 import os
 import re
 import shutil
@@ -37,7 +38,35 @@ from astrbot.core import AstrBotConfig
 from astrbot.core.message.components import Plain, Image, File
 from astrbot.core.message.message_event_result import MessageChain
 
-import jmcomic
+def _ensure_curl_cffi() -> bool:
+    """确保插件私有 curl_cffi 存在，不存在则自动安装。"""
+    if (_DEPS_DIR / "curl_cffi").is_dir():
+        return True
+    try:
+        _DEPS_DIR.mkdir(parents=True, exist_ok=True)
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "install", "curl-cffi", "-q",
+             "--target", str(_DEPS_DIR),
+             "-i", "https://pypi.tuna.tsinghua.edu.cn/simple/"],
+            timeout=600,
+            check=False,
+        )
+        # 关键：pip 装完后强制刷新 import 缓存，否则 Python 仍按"空目录"缓存找不到新包
+        importlib.invalidate_caches()
+        return result.returncode == 0 and (_DEPS_DIR / "curl_cffi").is_dir()
+    except Exception:
+        return False
+
+# 模块加载时先保证依赖就绪，再导入 jmcomic，避免 import 崩导致自动安装永远无法触发
+_ensure_curl_cffi()
+
+try:
+    import jmcomic
+    JM_READY = True
+except Exception as _jm_import_err:
+    JM_READY = False
+    JM_IMPORT_ERR = _jm_import_err
+    logger.warning(f"[jm下载姬] jmcomic 导入失败，插件暂不可用: {_jm_import_err}")
 
 _IMG_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"}
 _FMT_ALIAS = {
@@ -96,8 +125,7 @@ class JmComicPlugin(Star):
 
     @staticmethod
     def _curl_ok() -> bool:
-        # 只承认插件自己的依赖目录，避免把其他插件的 curl-cffi 误算进来。
-        return (_DEPS_DIR / "curl_cffi").is_dir()
+        return JM_READY
 
     # ---------------- 配置读取（面板改动全部生效） ----------------
 

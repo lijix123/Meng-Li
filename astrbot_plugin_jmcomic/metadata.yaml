@@ -1,6 +1,6 @@
 name: astrbot_plugin_jmcomic
 display_name: jm下载姬
-desc: 禁漫本子一键下载插件。搜索、榜单、按ID下载，长图/zip/pdf三种格式交付，任务可查可取消。依赖完全自包含，自动跟随上游更新，装上即用，卸载即净。
+desc: 禁漫本子一键下载插件（不完善，可能有bug）。搜索、榜单、按ID下载，长图/zip/pdf三种格式交付，任务可查可取消。依赖完全自包含，自动跟随上游更新，装上即用，卸载即净。有问题联系QQ2945386118或让Agent检查修复。
 help: |
   🎴 jm下载姬 · 禁漫本子下载
 
@@ -21,6 +21,8 @@ help: |
     取消自己的任务。例：取消 1
 
   交付完自动清理服务器文件，不占磁盘。
+
+  注：插件尚不完善，遇bug请联系QQ2945386118，或让Agent排查修复。
 version: v1.1.0
 author: 梦璃
 repo: https://github.com/hect0x7/JMComic-Crawler-Python

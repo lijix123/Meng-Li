@@ -70,7 +70,10 @@ except Exception as _jm_import_err:
     logger.warning(f"[jm下载姬] jmcomic 导入失败，插件暂不可用: {_jm_import_err}")
 
 _IMG_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"}
-_PYPI_JSON_URL = "https://pypi.org/pypi/jmcomic/json"
+_PYPI_JSON_URLS = [
+    "https://pypi.org/pypi/jmcomic/json",
+    "https://pypi.tuna.tsinghua.edu.cn/pypi/jmcomic/json",
+]
 _UPDATE_CHECK_INTERVAL = 3600  # 运行中每小时检查一次上游版本
 _FMT_ALIAS = {
     "longimg": "longimg", "长图": "longimg", "图": "longimg",
@@ -154,17 +157,20 @@ class JmComicPlugin(Star):
     # ---------------- 上游自动更新 ----------------
 
     @staticmethod
-    def _get_latest_pypi_version(timeout: int = 10):
-        """查询 PyPI 上 jmcomic 最新版本，失败返回 None。"""
+    def _get_latest_pypi_version(timeout: int = 5):
+        """多源查询 jmcomic 最新版本：官方源优先，镜像兜底。全部失败返回 None。"""
         import urllib.request
-        try:
-            req = urllib.request.Request(_PYPI_JSON_URL, headers={"User-Agent": "jm-downloader/1.0"})
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-            return data.get("info", {}).get("version")
-        except Exception as e:
-            logger.debug(f"[jm下载姬] 上游版本检查失败: {e}")
-            return None
+        for url in _PYPI_JSON_URLS:
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "jm-downloader/1.0"})
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                version = data.get("info", {}).get("version")
+                if version:
+                    return version
+            except Exception as e:
+                logger.debug(f"[jm下载姬] 上游版本源失败 {url}: {e}")
+        return None
 
     @staticmethod
     def _vendor_version() -> str | None:

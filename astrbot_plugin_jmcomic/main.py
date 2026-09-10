@@ -27,6 +27,8 @@ from pathlib import Path
 _PLUGIN_DIR = Path(__file__).resolve().parent
 _DEPS_DIR = _PLUGIN_DIR / ".deps"
 _VENDOR = _PLUGIN_DIR / "vendor"
+# 更新下载源：官方源优先（版本最新），失败回退清华镜像（国内快，可能滞后）
+_PIP_INDEX_URLS = ("https://pypi.org/simple/", "https://pypi.tuna.tsinghua.edu.cn/simple/")
 # 插件私有依赖优先于系统包。curl-cffi 会安装在 .deps，绝不污染系统 pip 环境。
 for _path in (str(_VENDOR), str(_DEPS_DIR)):
     if _path not in sys.path:
@@ -224,15 +226,30 @@ class JmComicPlugin(Star):
             if tmp_dir.exists():
                 shutil.rmtree(tmp_dir, ignore_errors=True)
             tmp_dir.mkdir(parents=True, exist_ok=True)
-            result = subprocess.run(
-                [sys.executable, "-m", "pip", "install", "jmcomic", "-q",
-                 "--target", str(tmp_dir), "--no-deps",
-                 "-i", "https://pypi.tuna.tsinghua.edu.cn/simple/"],
-                timeout=300,
-                check=False,
-            )
-            if result.returncode != 0:
-                return False, f"pip下载失败(码{result.returncode})"
+            result = None
+            for _idx in _PIP_INDEX_URLS:
+                result = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", "jmcomic", "-q",
+                     "--target", str(tmp_dir), "--no-deps",
+                     "-i", _idx],
+                    timeout=300,
+                    check=False,
+                )
+                if result.returncode == 0:
+                    break
+            if result is None or result.returncode != 0:
+                return False, f"pip下载失败(码{result.returncode if result else '无'})"
+            # 同步拉取 commonx（jmcomic 运行依赖，import 名为 common），不装则 vendor/common 永远滞后
+            for _idx in _PIP_INDEX_URLS:
+                result = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", "commonx", "-q",
+                     "--target", str(tmp_dir), "--no-deps",
+                     "-i", _idx],
+                    timeout=300,
+                    check=False,
+                )
+                if result.returncode == 0:
+                    break
             importlib.invalidate_caches()
             if not (tmp_dir / "jmcomic").is_dir():
                 return False, "下载目录缺少jmcomic包"
@@ -264,7 +281,7 @@ class JmComicPlugin(Star):
         script = (
             "import sys; sys.path.insert(0, %r); sys.path.insert(0, %r); sys.path.insert(0, %r); "
             "import jmcomic; print(jmcomic.__version__)"
-            % (str(tmp_dir), str(_VENDOR), str(_DEPS_DIR))
+            % (str(_DEPS_DIR), str(_VENDOR), str(tmp_dir))
         )
         try:
             r = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=60)
@@ -279,7 +296,7 @@ class JmComicPlugin(Star):
         script = (
             "import sys; sys.path.insert(0, %r); sys.path.insert(0, %r); sys.path.insert(0, %r); "
             "import jmcomic; from jmcomic import JmOption; print('OK')"
-            % (str(tmp_dir), str(_VENDOR), str(_DEPS_DIR))
+            % (str(_DEPS_DIR), str(_VENDOR), str(tmp_dir))
         )
         try:
             r = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=60)
